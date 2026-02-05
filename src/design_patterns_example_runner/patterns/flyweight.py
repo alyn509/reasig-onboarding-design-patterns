@@ -76,7 +76,7 @@ def add_car_to_police_database(
     flyweight.operation([plates, owner])
 
 
-if __name__ == "__main__":
+def main():
     """
     The client code usually creates a bunch of pre-populated flyweights in the
     initialization stage of the application.
