@@ -1,7 +1,8 @@
 import sys
 
 from .patterns import all_patterns
-    
+
+
 def main():
     if len(sys.argv) < 2:
         print("Usage: python -m src.design_patterns_example_runner <pattern>")
