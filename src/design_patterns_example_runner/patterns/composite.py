@@ -130,7 +130,7 @@ def client_code2(component1: Component, component2: Component) -> None:
     print(f"RESULT: {component1.operation()}", end="")
 
 
-if __name__ == "__main__":
+def main():
     # This way the client code can support the simple leaf components...
     simple = Leaf()
     print("Client: I've got a simple component:")
