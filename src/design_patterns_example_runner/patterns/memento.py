@@ -1,89 +1,146 @@
 from __future__ import annotations
-from abc import ABC
+from abc import ABC, abstractmethod
+from datetime import datetime
+from random import sample
+from string import ascii_letters
 
 
-class Mediator(ABC):
+class Originator:
     """
-    The Mediator interface declares a method used by components to notify the
-    mediator about various events. The Mediator may react to these events and
-    pass the execution to other components.
+    The Originator holds some important state that may change over time. It also
+    defines a method for saving the state inside a memento and another method
+    for restoring the state from it.
     """
 
-    def notify(self, sender: object, event: str) -> None:
+    _state = None
+    """
+    For the sake of simplicity, the originator's state is stored inside a single
+    variable.
+    """
+
+    def __init__(self, state: str) -> None:
+        self._state = state
+        print(f"Originator: My initial state is: {self._state}")
+
+    def do_something(self) -> None:
+        """
+        The Originator's business logic may affect its internal state.
+        Therefore, the client should backup the state before launching methods
+        of the business logic via the save() method.
+        """
+
+        print("Originator: I'm doing something important.")
+        self._state = self._generate_random_string(30)
+        print(f"Originator: and my state has changed to: {self._state}")
+
+    @staticmethod
+    def _generate_random_string(length: int = 10) -> str:
+        return "".join(sample(ascii_letters, length))
+
+    def save(self) -> Memento:
+        """
+        Saves the current state inside a memento.
+        """
+
+        return ConcreteMemento(self._state)
+
+    def restore(self, memento: Memento) -> None:
+        """
+        Restores the Originator's state from a memento object.
+        """
+
+        self._state = memento.get_state()
+        print(f"Originator: My state has changed to: {self._state}")
+
+
+class Memento(ABC):
+    """
+    The Memento interface provides a way to retrieve the memento's metadata,
+    such as creation date or name. However, it doesn't expose the Originator's
+    state.
+    """
+
+    @abstractmethod
+    def get_name(self) -> str:
+        pass
+
+    @abstractmethod
+    def get_date(self) -> str:
         pass
 
 
-class ConcreteMediator(Mediator):
-    def __init__(self, component1: Component1, component2: Component2) -> None:
-        self._component1 = component1
-        self._component1.mediator = self
-        self._component2 = component2
-        self._component2.mediator = self
+class ConcreteMemento(Memento):
+    def __init__(self, state: str) -> None:
+        self._state = state
+        self._date = str(datetime.now())[:19]
 
-    def notify(self, sender: object, event: str) -> None:
-        if event == "A":
-            print("Mediator reacts on A and triggers following operations:")
-            self._component2.do_c()
-        elif event == "D":
-            print("Mediator reacts on D and triggers following operations:")
-            self._component1.do_b()
-            self._component2.do_c()
+    def get_state(self) -> str:
+        """
+        The Originator uses this method when restoring its state.
+        """
+        return self._state
+
+    def get_name(self) -> str:
+        """
+        The rest of the methods are used by the Caretaker to display metadata.
+        """
+
+        return f"{self._date} / ({self._state[0:9]}...)"
+
+    def get_date(self) -> str:
+        return self._date
 
 
-class BaseComponent:
+class Caretaker:
     """
-    The Base Component provides the basic functionality of storing a mediator's
-    instance inside component objects.
+    The Caretaker doesn't depend on the Concrete Memento class. Therefore, it
+    doesn't have access to the originator's state, stored inside the memento. It
+    works with all mementos via the base Memento interface.
     """
 
-    def __init__(self, mediator: Mediator = None) -> None:
-        self._mediator = mediator
+    def __init__(self, originator: Originator) -> None:
+        self._mementos = []
+        self._originator = originator
 
-    @property
-    def mediator(self) -> Mediator:
-        return self._mediator
+    def backup(self) -> None:
+        print("\nCaretaker: Saving Originator's state...")
+        self._mementos.append(self._originator.save())
 
-    @mediator.setter
-    def mediator(self, mediator: Mediator) -> None:
-        self._mediator = mediator
+    def undo(self) -> None:
+        if not len(self._mementos):
+            return
 
+        memento = self._mementos.pop()
+        print(f"Caretaker: Restoring state to: {memento.get_name()}")
+        try:
+            self._originator.restore(memento)
+        except Exception:
+            self.undo()
 
-"""
-Concrete Components implement various functionality. They don't depend on other
-components. They also don't depend on any concrete mediator classes.
-"""
-
-
-class Component1(BaseComponent):
-    def do_a(self) -> None:
-        print("Component 1 does A.")
-        self.mediator.notify(self, "A")
-
-    def do_b(self) -> None:
-        print("Component 1 does B.")
-        self.mediator.notify(self, "B")
-
-
-class Component2(BaseComponent):
-    def do_c(self) -> None:
-        print("Component 2 does C.")
-        self.mediator.notify(self, "C")
-
-    def do_d(self) -> None:
-        print("Component 2 does D.")
-        self.mediator.notify(self, "D")
+    def show_history(self) -> None:
+        print("Caretaker: Here's the list of mementos:")
+        for memento in self._mementos:
+            print(memento.get_name())
 
 
 def main():
-    # The client code.
-    c1 = Component1()
-    c2 = Component2()
-    mediator = ConcreteMediator(c1, c2)
+    originator = Originator("Super-duper-super-puper-super.")
+    caretaker = Caretaker(originator)
 
-    print("Client triggers operation A.")
-    c1.do_a()
+    caretaker.backup()
+    originator.do_something()
 
-    print("\n", end="")
+    caretaker.backup()
+    originator.do_something()
 
-    print("Client triggers operation D.")
-    c2.do_d()
+    caretaker.backup()
+    originator.do_something()
+
+    print()
+    caretaker.show_history()
+
+    print("\nClient: Now, let's rollback!\n")
+    caretaker.undo()
+
+    print("\nClient: Once more!\n")
+    caretaker.undo()
