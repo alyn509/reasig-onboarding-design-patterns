@@ -11,6 +11,7 @@ class AbstractFactory(ABC):
     variants, but the products of one variant are incompatible with products of
     another.
     """
+
     @abstractmethod
     def create_product_a(self) -> AbstractProductA:
         pass
@@ -79,6 +80,7 @@ class AbstractProductB(ABC):
     with each other, but proper interaction is possible only between products of
     the same concrete variant.
     """
+
     @abstractmethod
     def useful_function_b(self) -> None:
         """
